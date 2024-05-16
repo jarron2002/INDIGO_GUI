@@ -335,6 +335,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
                 elif not self.any_cb_checked(groupbox) and groupbox.bool_scrollbar_created:
                     self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
                     self.dict_scrollbars_properties.pop(groupbox.server.name)
+                    groupbox.bool_scrollbar_created = False
             time.sleep(0.5)
             for child in self.list_children_scroll_area:
                 self.remove_widget(child)

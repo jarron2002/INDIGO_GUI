@@ -48,7 +48,7 @@ class GroupboxDevices(QGroupBox):
         self.setLayout(layout)
 
 class MainWindow_logic(MainWindow, QMainWindow):
-    signal_create_widget_properties = Signal(QGroupBox)
+    signal_create_scrollbar_properties = Signal(QGroupBox)
     def __init__(self):
         super().__init__()
 
@@ -67,7 +67,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
         SelectionMode.ExtendedSelection)
 
         self.action_servers.triggered.connect(self.listwidget_server)
-        self.signal_create_widget_properties.connect(self.create_scrollbar_properties)
+        self.signal_create_scrollbar_properties.connect(self.create_scrollbar_properties)
         self.action_quit.triggered.connect(self.quit)
 
 
@@ -277,7 +277,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
 
     @Slot(QGroupBox)
     def create_scrollbar_properties(self, groupbox_device:GroupboxDevices):
-        if not groupbox_device.bool_scrollbar_created
+        if not groupbox_device.bool_scrollbar_created:
             scroll_area = QScrollArea()
             self.dict_scrollbars_properties[groupbox_device.server.name] = scroll_area
             font_bold = QFont()
@@ -290,6 +290,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
             widget.setLayout(layout)
             scroll_area.setWidget(widget)
             self.layout_properties.addWidget(scroll_area)
+            groupbox_device.bool_scrollbar_created = True
 
         '''
         for device_name, cb in groupbox_device.dict_checkboxes.items():
@@ -330,8 +331,11 @@ class MainWindow_logic(MainWindow, QMainWindow):
         while (True and not self.bool_stop_thread):
             for groupbox in self.dict_groupboxes_devices.values():
                 if self.any_cb_checked(groupbox):
-                    self.signal_create_widget_properties.emit(groupbox)
-            time.sleep(10)
+                    self.signal_create_scrollbar_properties.emit(groupbox)
+                elif not self.any_cb_checked(groupbox) and groupbox.bool_scrollbar_created:
+                    self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
+                    self.dict_scrollbars_properties.pop(groupbox.server.name)
+            time.sleep(0.5)
             for child in self.list_children_scroll_area:
                 self.remove_widget(child)
             self.list_children_scroll_area.clear()

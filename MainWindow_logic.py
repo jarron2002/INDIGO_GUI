@@ -332,7 +332,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
             for groupbox in self.dict_groupboxes_devices.values():
                 if self.any_cb_checked(groupbox):
                     self.signal_create_scrollbar_properties.emit(groupbox)
-                elif not self.any_cb_checked(groupbox) and groupbox.bool_scrollbar_created:
+                elif (not self.any_cb_checked(groupbox) and groupbox.bool_scrollbar_created):
                     self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
                     self.dict_scrollbars_properties.pop(groupbox.server.name)
                     groupbox.bool_scrollbar_created = False

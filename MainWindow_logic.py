@@ -236,6 +236,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
     def disconnect_server(self, server:INDIGOServer):
         server.disconnect()
         self.disconnected_info(server)
+        self.del_scrollbar_properties(self.dict_groupboxes_devices[server.name])
         self.dict_groupboxes_devices[server.name].deleteLater()
 
     #Esta función muestra un mensaje de información cuando
@@ -327,15 +328,18 @@ class MainWindow_logic(MainWindow, QMainWindow):
         self.bool_properties_shown = True
     '''
 
+    def del_scrollbar_properties(self, groupbox:GroupboxDevices):
+        self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
+        self.dict_scrollbars_properties.pop(groupbox.server.name)
+        groupbox.bool_scrollbar_created = False
+
     def show_properties(self):
         while (True and not self.bool_stop_thread):
             for groupbox in self.dict_groupboxes_devices.values():
                 if self.any_cb_checked(groupbox):
                     self.signal_create_scrollbar_properties.emit(groupbox)
                 elif (not self.any_cb_checked(groupbox) and groupbox.bool_scrollbar_created):
-                    self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
-                    self.dict_scrollbars_properties.pop(groupbox.server.name)
-                    groupbox.bool_scrollbar_created = False
+                    self.del_scrollbar_properties(groupbox)
             time.sleep(0.5)
             for child in self.list_children_scroll_area:
                 self.remove_widget(child)

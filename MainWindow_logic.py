@@ -1,9 +1,14 @@
+import threading
 import time
+
+import PySide6.QtCore
+
 from MainWindow import MainWindow
 from PySide6.QtGui import (
 QAction,
 QFont
 )
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
 QMainWindow,
 QHBoxLayout,
@@ -42,27 +47,32 @@ class GroupboxDevices(QGroupBox):
         self.setLayout(layout)
 
 class MainWindow_logic(MainWindow, QMainWindow):
+    signal_create_widget_properties = Signal(QGroupBox)
     def __init__(self):
         super().__init__()
 
         self.dict_servers = {}
         self.dict_groupboxes_devices = {}
         self.listwidget_servers = QListWidget()
-        self.bool_devices_shown = False
         self.bool_properties_shown = False
-        self.button_show_properties = None
+
+        self.bool_stop_thread = False
+        self.thread_show_properties = threading.Thread(target = self.show_properties)
+        self.thread_show_properties.start()
 
         #Activamos el modo de selección múltiple del listwidget
         self.listwidget_servers.setSelectionMode(QAbstractItemView.
         SelectionMode.ExtendedSelection)
 
         self.action_servers.triggered.connect(self.listwidget_server)
+        self.signal_create_widget_properties.connect(self.create_widget_properties)
         self.action_quit.triggered.connect(self.quit)
 
 
     def quit(self):
         for server in self.dict_servers.values():
             self.disconnect_server(server)
+        self.bool_stop_thread = True
         self.close()
 
     #Esta función realiza la conexión al servidor que
@@ -137,10 +147,6 @@ class MainWindow_logic(MainWindow, QMainWindow):
             self.disconnect_server(self.dict_servers[item.text()])
             self.dict_servers.pop(item.text())
             self.dict_groupboxes_devices.pop(item.text())
-        if not self.dict_servers:
-            if self.bool_devices_shown:
-                self.button_show_properties.deleteLater()
-            self.bool_devices_shown = False
 
     #Esta función genera un diálogo para introducir
     #la dirección IP y puerto del servidor INDIGO
@@ -152,7 +158,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
         layout_middle = QHBoxLayout()
         layout_down = QHBoxLayout()
         layout_total = QVBoxLayout()
-        line_edit_address = QLineEdit("192.168.1.6")
+        line_edit_address = QLineEdit("localhost")
         line_edit_port = QLineEdit("7624")
         line_edit_name = QLineEdit("Test")
         dialog_button_box = QDialogButtonBox()
@@ -256,13 +262,8 @@ class MainWindow_logic(MainWindow, QMainWindow):
     #de INDIGO al que nos hemos conectado
 
     def show_devices(self, server:INDIGOServer):
-        if not self.bool_devices_shown:
-            self.button_show_properties = QPushButton("Show properties")
-            self.layout_devices.insertWidget(-1, self.button_show_properties)
-            self.bool_devices_shown = True
         self.dict_groupboxes_devices[server.name] = GroupboxDevices(server)
         self.layout_devices.insertWidget(0, self.dict_groupboxes_devices[server.name])
-        self.button_show_properties.clicked.connect(self.show_properties)
 
     #En esta función, mostaremos las propiedades, elementos
     #y valores de los elementos de los dispositivos
@@ -271,42 +272,44 @@ class MainWindow_logic(MainWindow, QMainWindow):
     #para poder borrarlo y volver a inicializarlo con
     #nuevos valores para cuando sea necesario
 
+
+    @Slot(QGroupBox)
     def create_widget_properties(self, groupbox_device:GroupboxDevices):
-        if self.any_cb_checked(groupbox_device):
-            scroll_area = QScrollArea()
-            font_bold = QFont()
-            label_server = QLabel(groupbox_device.server.name)
-            font_bold.setBold(True)
-            label_server.setFont(font_bold)
-            widget = QWidget()
-            layout = QVBoxLayout()
-            layout.addWidget(label_server)
-            for device_name, cb in groupbox_device.dict_checkboxes.items():
-                if cb.isChecked():
-                    layout_device = QVBoxLayout()
-                    layout_device.addWidget(QLabel('\t' + device_name))
-                    layout.addLayout(layout_device)
-                    for prop_name, prop in groupbox_device.server.devices[device_name].properties.items():
-                        layout_device.addWidget(QLabel('\t' + '\t' + prop_name))
-                        property_type = prop.propertyType
-                        for elem_name, elem in prop.elements.items():
-                            layout_element = QHBoxLayout()
-                            layout_element.addWidget(QLabel('\t' + '\t' + '\t' + elem_name + ": "))
-                            if (property_type == "Text" or property_type == "Number"):
-                                item_elem = QLabel(elem.value)
-                            elif property_type == "Switch":
-                                item_elem = QPushButton(elem.value)
-                            elif property_type == "Light":
-                                item_elem = QLabel(elem.value)
-                            layout_element.addWidget(item_elem)
-                            layout_device.addLayout(layout_element)
 
-            widget.setLayout(layout)
-            scroll_area.setWidget(widget)
-            self.layout_properties.addWidget(scroll_area)
+        scroll_area = QScrollArea()
+        font_bold = QFont()
+        label_server = QLabel(groupbox_device.server.name)
+        font_bold.setBold(True)
+        label_server.setFont(font_bold)
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(label_server)
+        for device_name, cb in groupbox_device.dict_checkboxes.items():
+            if cb.isChecked():
+                layout_device = QVBoxLayout()
+                layout_device.addWidget(QLabel('\t' + device_name))
+                layout.addLayout(layout_device)
+                for prop_name, prop in groupbox_device.server.devices[device_name].properties.items():
+                    layout_device.addWidget(QLabel('\t' + '\t' + prop_name))
+                    property_type = prop.propertyType
+                    for elem_name, elem in prop.elements.items():
+                        layout_element = QHBoxLayout()
+                        layout_element.addWidget(QLabel('\t' + '\t' + '\t' + elem_name + ": "))
+                        if (property_type == "Text" or property_type == "Number"):
+                            item_elem = QLabel(elem.value)
+                        elif property_type == "Switch":
+                            item_elem = QPushButton(elem.value)
+                        elif property_type == "Light":
+                            item_elem = QLabel(elem.value)
+                        layout_element.addWidget(item_elem)
+                        layout_device.addLayout(layout_element)
+
+        widget.setLayout(layout)
+        scroll_area.setWidget(widget)
+        self.layout_properties.addWidget(scroll_area)
 
 
-
+    '''
     def show_properties(self):
         if self.bool_properties_shown:
             scroll_area_children_list = self.widget_properties.findChildren(QScrollArea)
@@ -315,59 +318,23 @@ class MainWindow_logic(MainWindow, QMainWindow):
         for groupbox in self.dict_groupboxes_devices.values():
             self.create_widget_properties(groupbox)
         self.bool_properties_shown = True
+    '''
+
+    def show_properties(self):
+        while (True and not self.bool_stop_thread):
+            for groupbox in self.dict_groupboxes_devices.values():
+                if self.any_cb_checked(groupbox):
+                    self.signal_create_widget_properties.emit(groupbox)
+            scroll_area_children_list = self.widget_properties.findChildren(QScrollArea)
+            #print(scroll_area_children_list)
+            time.sleep(5)
+            for child in scroll_area_children_list:
+                self.remove_widget(child)
+            #    print(child, " borrado")
+                scroll_area_children_list.remove(child)
 
 
-        '''
-        if self.bool_properties_shown:
-            self.remove_widget(self.scroll_area)
 
-        checked_count = 0
-        self.scroll_area = QScrollArea()
-        self.widget_right = QWidget()
-        self.layout_right = QVBoxLayout()
-        self.dict_devices_string = {}
-        font_device = QFont()
-        font_device.setBold(True)
-        font_device.setItalic(True)
-        font_device.setUnderline(True)
-        font_prop = QFont()
-        font_prop.setBold(True)
-
-        for device, cb in self.dict_cb.items():
-            if cb.isChecked():
-                checked_count += 1
-                dict_props_string = {}
-                self.dict_devices_string[device] = dict_props_string
-                layout_device = QVBoxLayout()
-                label_device = QLabel(device)
-                label_device.setFont(font_device)
-                layout_device.addWidget(label_device)
-                self.layout_right.addLayout(layout_device)
-                dict_props = self.server.devices[device].properties
-                for prop_name, prop in dict_props.items():
-                    dict_elems_value_string = {}
-                    dict_props_string[prop_name] = dict_elems_value_string
-                    layout_prop = QVBoxLayout()
-                    label_prop = QLabel('\t' + prop_name)
-                    label_prop.setFont(font_prop)
-                    layout_prop.addWidget(label_prop)
-                    layout_device.addLayout(layout_prop)
-                    dict_elems = dict_props[prop_name].elements
-                    for elem_name, elem in dict_elems.items():
-                        dict_elems_value_string[elem_name] = elem.value
-                        layout_elem = QVBoxLayout()
-                        label_elem = QLabel('\t' + '\t' + elem_name + ": " + str(elem.value))
-                        layout_elem.addWidget(label_elem)
-                        layout_prop.addLayout(layout_elem)
-
-        if checked_count:
-            self.bool_properties_shown = True
-
-            self.widget_right.setLayout(self.layout_right)
-            self.scroll_area.setWidget(self.widget_right)
-            self.scroll_area.setWidgetResizable(True)
-            self.layout_total.insertWidget(1, self.scroll_area)
-        '''
     def any_cb_checked(self, groupbox:GroupboxDevices):
         checked_count = 0
         for cb in groupbox.dict_checkboxes.values():

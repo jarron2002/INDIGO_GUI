@@ -1,37 +1,13 @@
 import threading
 import time
-
-import PySide6.QtCore
-
 from MainWindow import MainWindow
-from PySide6.QtGui import (
-QAction,
-QFont
-)
+from PySide6.QtGui import QAction, QFont
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import (
-QMainWindow,
-QHBoxLayout,
-QVBoxLayout,
-QLabel,
-QLineEdit,
-QPushButton,
-QWidget,
-QDialog,
-QDialogButtonBox,
-QStatusBar,
-QMessageBox,
-QCheckBox,
-QGroupBox,
-QScrollArea,
-QListWidget,
-QListWidgetItem,
-QAbstractItemView
-)
-from INDIGO import (
-INDIGOServer,
-INDIGODevice
-)
+from PySide6.QtWidgets import (QMainWindow, QHBoxLayout, QVBoxLayout,
+    QLabel, QLineEdit, QPushButton, QWidget, QDialog, QDialogButtonBox,
+    QStatusBar, QMessageBox, QCheckBox, QGroupBox, QScrollArea,
+    QListWidget, QListWidgetItem, QAbstractItemView)
+from INDIGO import INDIGOServer, INDIGODevice
 
 class GroupboxDevices(QGroupBox):
     def __init__(self, server:INDIGOServer):

@@ -48,9 +48,9 @@ class MainWindow_logic(MainWindow, QMainWindow):
 
 
     def quit(self):
+        self.bool_stop_thread = True
         for server in self.dict_servers.values():
             self.disconnect_server(server)
-        self.bool_stop_thread = True
         self.close()
 
     #Esta función realiza la conexión al servidor que
@@ -212,7 +212,8 @@ class MainWindow_logic(MainWindow, QMainWindow):
     def disconnect_server(self, server:INDIGOServer):
         server.disconnect()
         self.disconnected_info(server)
-        self.del_scrollbar_properties(self.dict_groupboxes_devices[server.name])
+        if self.dict_groupboxes_devices[server.name].bool_scrollbar_created:
+            self.del_scrollbar_properties(self.dict_groupboxes_devices[server.name])
         self.dict_groupboxes_devices[server.name].deleteLater()
 
     #Esta función muestra un mensaje de información cuando

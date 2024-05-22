@@ -30,20 +30,6 @@ class Device(QWidget):
     def __init__(self, groupBox:GroupboxDevices):
         super().__init__()
 
-'''
-class ScrollBar_Properties(QWidget):
-    def __init__(self, groupbox:GroupboxDevices):
-        super().__init__()
-        self.groupbox = groupbox
-        font_bold = QFont()
-        label_server = QLabel(groupbox.server.name)
-        font_bold.setBold(True)
-        label_server.setFont(font_bold)
-        self.dict_devices = {}
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(label_server)
-'''
-
 class ScrollBar_Properties(QScrollArea):
     def __init__(self, groupbox:GroupboxDevices):
         super().__init__()
@@ -277,47 +263,28 @@ class MainWindow_logic(MainWindow, QMainWindow):
     #Esta función nos permitirá mostrar los distintos
     #dispositivos que están presentes en el servidor
     #de INDIGO al que nos hemos conectado
-
     def show_devices(self, server:INDIGOServer):
         self.dict_groupboxes_devices[server.name] = GroupboxDevices(server)
         self.layout_devices.insertWidget(0, self.dict_groupboxes_devices[server.name])
 
-
-    '''
-    def show_properties(self):
-        if self.bool_properties_shown:
-            scroll_area_children_list = self.widget_properties.findChildren(QScrollArea)
-            for child in scroll_area_children_list:
-                child.deleteLater()
-        for groupbox in self.dict_groupboxes_devices.values():
-            self.create_widget_properties(groupbox)
-        self.bool_properties_shown = True
-    '''
-
     @Slot(ScrollBar_Properties)
     def add_device_scrollbar(self, scrollbar:ScrollBar_Properties):
-        print("Crear", scrollbar.groupbox.current_device)
-
         widget = QWidget()
         scrollbar.dict_devices[scrollbar.groupbox.current_device] = widget
         layout_device = QVBoxLayout()
         layout_device.addWidget(QLabel('\t' + scrollbar.groupbox.current_device))
-        #print('\t' + device_name)
-        #scrollbar.layout.addLayout(layout_device)
         for prop_name, prop in scrollbar.groupbox.server.devices[scrollbar.groupbox.current_device].properties.items():
             layout_device.addWidget(QLabel('\t' + '\t' + prop_name))
             property_type = prop.propertyType
             for elem_name, elem in prop.elements.items():
                 layout_element = QHBoxLayout()
                 layout_element.addWidget(QLabel('\t' + '\t' + '\t' + elem_name + ": "))
-                #print('\t' + '\t' + '\t' + elem_name + ": ")
                 if (property_type == "Text" or property_type == "Number"):
                     item_elem = QLabel(elem.value)
                 elif property_type == "Switch":
                     item_elem = QPushButton(elem.value)
                 elif property_type == "Light":
                     item_elem = QLabel(elem.value)
-                #print(elem.value)
                 layout_element.addWidget(item_elem)
                 layout_device.addLayout(layout_element)
         widget.setLayout(layout_device)
@@ -326,24 +293,16 @@ class MainWindow_logic(MainWindow, QMainWindow):
         scrollbar.setWidget(scrollbar.widget)
         scrollbar.setWidgetResizable(True)
 
-
-
-
     def del_device_scrollbar(self, scrollbar:ScrollBar_Properties):
-        print("Borrar", scrollbar.groupbox.current_device)
         scrollbar.dict_devices[scrollbar.groupbox.current_device].deleteLater()
         scrollbar.dict_devices.pop(scrollbar.groupbox.current_device)
 
-
-
-
-        # En esta función, mostaremos las propiedades, elementos
-        # y valores de los elementos de los dispositivos
-        # seleccionados previamente.
-        # También declaramos aquí el widget que los contendrá
-        # para poder borrarlo y volver a inicializarlo con
-        # nuevos valores para cuando sea necesario
-
+    # En esta función, mostaremos las propiedades, elementos
+    # y valores de los elementos de los dispositivos
+    # seleccionados previamente.
+    # También declaramos aquí el widget que los contendrá
+    # para poder borrarlo y volver a inicializarlo con
+    # nuevos valores para cuando sea necesario
     @Slot(GroupboxDevices)
     def create_scrollbar_properties(self, groupbox: GroupboxDevices):
         groupbox.bool_scrollbar_created = True
@@ -351,57 +310,6 @@ class MainWindow_logic(MainWindow, QMainWindow):
         self.dict_scrollbars_properties[groupbox.server.name] = scrollbar
         scrollbar.setLayout(scrollbar.layout)
         self.layout_properties.addWidget(scrollbar)
-
-        '''
-        for device_name, cb in groupbox.dict_checkboxes.items():
-            if cb.isChecked() and not groupbox.dict_bool_created_device[device_name]:
-                layout_device = QVBoxLayout()
-                layout_device.addWidget(QLabel('\t' + device_name))
-                #print('\t' + device_name)
-                scrollbar.layout.addLayout(layout_device)
-                for prop_name, prop in groupbox.server.devices[device_name].properties.items():
-                    layout_device.addWidget(QLabel('\t' + '\t' + prop_name))
-                    property_type = prop.propertyType
-                    for elem_name, elem in prop.elements.items():
-                        layout_element = QHBoxLayout()
-                        layout_element.addWidget(QLabel('\t' + '\t' + '\t' + elem_name + ": "))
-                        #print('\t' + '\t' + '\t' + elem_name + ": ")
-                        if (property_type == "Text" or property_type == "Number"):
-                            item_elem = QLabel(elem.value)
-                        elif property_type == "Switch":
-                            item_elem = QPushButton(elem.value)
-                        elif property_type == "Light":
-                            item_elem = QLabel(elem.value)
-                        #print(elem.value)
-                        layout_element.addWidget(item_elem)
-                        layout_device.addLayout(layout_element)
-        scrollbar.widget.setLayout(scrollbar.layout)
-        scrollbar.setWidget(scrollbar.widget)
-        self.layout_properties.addWidget(scrollbar)
-        self.list_children_scroll_area = self.widget_properties.findChildren(QScrollArea)
-        '''
-        '''
-        for device_name, cb in groupbox_device.dict_checkboxes.items():
-            if cb.isChecked():
-                layout_device = QVBoxLayout()
-                layout_device.addWidget(QLabel('\t' + device_name))
-                layout.addLayout(layout_device)
-                for prop_name, prop in groupbox_device.server.devices[device_name].properties.items():
-                    layout_device.addWidget(QLabel('\t' + '\t' + prop_name))
-                    property_type = prop.propertyType
-                    for elem_name, elem in prop.elements.items():
-                        layout_element = QHBoxLayout()
-                        layout_element.addWidget(QLabel('\t' + '\t' + '\t' + elem_name + ": "))
-                        if (property_type == "Text" or property_type == "Number"):
-                            item_elem = QLabel(elem.value)
-                        elif property_type == "Switch":
-                            item_elem = QPushButton(elem.value)
-                        elif property_type == "Light":
-                            item_elem = QLabel(elem.value)
-                        layout_element.addWidget(item_elem)
-                        layout_device.addLayout(layout_element)
-        self.list_children_scroll_area = self.widget_properties.findChildren(QScrollArea)
-        '''
 
     def del_scrollbar_properties(self, groupbox:GroupboxDevices):
         self.dict_scrollbars_properties[groupbox.server.name].deleteLater()
@@ -417,14 +325,9 @@ class MainWindow_logic(MainWindow, QMainWindow):
                     #no se puede establecer el padre de un QObject que esté
                     #en un hilo de ejecución diferente
                     self.signal_create_scrollbar_properties.emit(groupbox)
-
-
-                ###Aquí está el fallo
                 elif ((not checked_count) and groupbox.bool_scrollbar_created) and (
                     not(self.dict_scrollbars_properties[groupbox.server.name]).dict_devices):
                     self.del_scrollbar_properties(groupbox)
-                ###Aquí está el fallo
-
                 for device_name, cb in groupbox.dict_checkboxes.items():
                     if cb.isChecked() and (not groupbox.dict_bool_created_device[device_name]):
                         groupbox.current_device = device_name
@@ -444,7 +347,6 @@ class MainWindow_logic(MainWindow, QMainWindow):
             if cb.isChecked():
                 checked_count += 1
         return checked_count
-
 
     def remove_widget(self, widget:QWidget):
         widget.deleteLater()

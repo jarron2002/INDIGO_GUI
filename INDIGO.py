@@ -279,8 +279,8 @@ class INDIGOServer:
     def connect(self):
         try:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   # Creamos el socket y nos conectamos
+            self._sock.settimeout(1)
             self._sock.connect((self._host, self._port))
-            self._sock.settimeout(.01)
             self._endReading = False
         except Exception as err:
             #print(err)

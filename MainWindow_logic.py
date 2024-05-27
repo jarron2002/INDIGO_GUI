@@ -1,20 +1,20 @@
 import threading
 import time
 from MainWindow import MainWindow
-from PySide6.QtGui import QAction, QFont
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import (QMainWindow, QHBoxLayout, QVBoxLayout,
+from PySide6.QtGui import QFont
+from PySide6.QtCore import Signal, Slot, Qt
+from PySide6.QtWidgets import (QHBoxLayout, QVBoxLayout,
     QLabel, QLineEdit, QPushButton, QWidget, QDialog, QDialogButtonBox,
-    QStatusBar, QMessageBox, QCheckBox, QGroupBox, QScrollArea,
-    QListWidget, QListWidgetItem, QAbstractItemView)
-from INDIGO import INDIGOServer, INDIGODevice, INDIGOProperty, INDIGOElement
+    QMessageBox, QCheckBox, QGroupBox, QScrollArea, QListWidget,
+    QAbstractItemView)
+from INDIGO import INDIGOServer
 
 class GroupboxDevices(QGroupBox):
     def __init__(self, server:INDIGOServer):
         super().__init__()
         self.server = server
         self.setTitle("Available devices in " + server.name +
-        " (" + server._host + ":" + str(server._port) + ")")
+        " (" + server.getHost() + ":" + str(server.getPort()) + ")")
         layout = QVBoxLayout()
         self.dict_checkboxes = {}
         self.dict_bool_created_device = {}
@@ -25,10 +25,6 @@ class GroupboxDevices(QGroupBox):
             self.dict_bool_created_device[device] = False
             layout.addWidget(self.dict_checkboxes[device])
         self.setLayout(layout)
-
-class Device(QWidget):
-    def __init__(self, groupBox:GroupboxDevices):
-        super().__init__()
 
 class ScrollBar_Properties(QScrollArea):
     def __init__(self, groupbox:GroupboxDevices):
@@ -47,7 +43,7 @@ class ScrollBar_Properties(QScrollArea):
 
 
 
-class MainWindow_logic(MainWindow, QMainWindow):
+class MainWindow_logic(MainWindow):
     signal_create_scrollbar_properties = Signal(GroupboxDevices)
     signal_add_device_scrollbar = Signal(ScrollBar_Properties)
     def __init__(self):
@@ -108,7 +104,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
         dialog_button_box.addButton(button_add_server, QDialogButtonBox.ButtonRole.ActionRole)
         dialog_button_box.addButton(button_server_info, QDialogButtonBox.ButtonRole.ActionRole)
         dialog_button_box.addButton(button_delete_server, QDialogButtonBox.ButtonRole.ActionRole)
-        dialog_button_box.addButton("Close", QDialogButtonBox.ButtonRole.RejectRole)
+        dialog_button_box.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)
         dialog_button_box.rejected.connect(self.dialog_total.reject)
         button_add_server.clicked.connect(self.add_server_listwidget)
         button_server_info.clicked.connect(self.server_info)
@@ -131,8 +127,8 @@ class MainWindow_logic(MainWindow, QMainWindow):
             dialog_button_box.accepted.connect(dialog.accept)
 
             layout.addWidget(QLabel("Name: " + self.dict_servers[item.text()].name))
-            layout.addWidget(QLabel("IP address: " + self.dict_servers[item.text()]._host))
-            layout.addWidget(QLabel("Port: " + str(self.dict_servers[item.text()]._port)))
+            layout.addWidget(QLabel("IP address: " + self.dict_servers[item.text()].getHost()))
+            layout.addWidget(QLabel("Port: " + str(self.dict_servers[item.text()].getPort())))
             layout.addWidget(dialog_button_box)
 
             dialog.setLayout(layout)
@@ -151,10 +147,12 @@ class MainWindow_logic(MainWindow, QMainWindow):
 
     #Esta función genera un diálogo para introducir
     #la dirección IP y puerto del servidor INDIGO
-    #al que conectarse
-    def add_server(self):
+    #al que conectarse y añadirlo al listwidget
+    def add_server_listwidget(self):
         #Declaración de las variables que se van
         #a usar en la función
+        bool_same_servers = False
+        list_return = []
         layout_up = QHBoxLayout()
         layout_middle = QHBoxLayout()
         layout_down = QHBoxLayout()
@@ -199,32 +197,30 @@ class MainWindow_logic(MainWindow, QMainWindow):
         dialog.setLayout(layout_total)
 
         #Hacemos que se muestre el diálogo de manera modal,
-        #es decir, no se puede ignorar
-        dialog.exec()
-
-        #Escupimos una cadena de caracteres con la dirección IP
-        #del servidor de INDIGO y un entero con el puerto de éste
-        return line_edit_name.text(), line_edit_address.text(), int(line_edit_port.text())
-
-    def add_server_listwidget(self):
-        bool_same_servers = False
-        server_name, server_ip_address, server_port = self.add_server()
-        server = INDIGOServer(server_name, server_ip_address, server_port)
-        for connected_server in self.dict_servers.values():
-            if (connected_server._host == server._host
-                and connected_server._port == server._port):
+        #es decir, no se puede ignorar y que escupa una cadena de caracteres
+        #con la dirección IP del servidor de INDIGO y un entero con el
+        #puerto de éste, si aceptamos el diálogo
+        if dialog.exec():
+            server_name = line_edit_name.text()
+            server_ip_address = line_edit_address.text()
+            server_port = int(line_edit_port.text())
+            server = INDIGOServer(server_name, server_ip_address, server_port)
+            for connected_server in self.dict_servers.values():
+                if (connected_server.getHost() == server.getHost()
+                    and connected_server.getPort() == server.getPort()) or (
+                    connected_server.name == server_name):
                     bool_same_servers = True
-        if bool_same_servers:
-            self.popup_same_servers(server)
-        else:
-            if self.connect_server(server):
-                self.listwidget_servers.addItem(server_name)
-                self.dict_servers[server_name] = server
+            if bool_same_servers:
+                self.popup_same_servers(server)
+            else:
+                if self.connect_server(server):
+                    self.listwidget_servers.addItem(server_name)
+                    self.dict_servers[server_name] = server
 
     def popup_same_servers(self, server:INDIGOServer):
         message_info = QMessageBox.information(self, "Already connected!",
-            "There already is an established connection in " + server._host +
-            ":" + str(server._port))
+            "There already is an established connection in " + server.getHost() +
+            ":" + str(server.getPort()) + " or name\"" + server.name + "\" already in use:")
 
     #Esta función realiza la desconexión con el servidor,
     #además de actualizar el contenido de la barra de estado,
@@ -245,20 +241,20 @@ class MainWindow_logic(MainWindow, QMainWindow):
     #con dicho servidor
     def connection_info(self, server:INDIGOServer):
         if server.isConnected():
-            message_box = QMessageBox.information(self, ("Succesful "
-            "connection!"), ("Connected to " + server._host
-            + ":" + str(server._port)))
+            QMessageBox.information(self, ("Succesful "
+            "connection!"), ("Connected to " + server.getHost()
+            + ":" + str(server.getPort())))
         else:
-            message_box = QMessageBox.warning(self, ("Error "
-            "connecting!"), ("Connection failed to " + server._host
-            + ":" + str(server._port)))
+            QMessageBox.warning(self, ("Error "
+            "connecting!"), ("Connection failed to " + server.getHost()
+            + ":" + str(server.getPort())))
 
     #Esta función muestra un mensaje cuando nos desconectamos
     #correctamente del servidor
     def disconnected_info(self, server:INDIGOServer):
-        message_box = QMessageBox.information(self, ("Succesful "
-        "disconnection!"), ("Disconnected from " + server._host
-        + ":" + str(server._port)) + " correctly")
+        QMessageBox.information(self, ("Succesful "
+        "disconnection!"), ("Disconnected from " + server.getHost()
+        + ":" + str(server.getPort())) + " correctly")
 
     #Esta función nos permitirá mostrar los distintos
     #dispositivos que están presentes en el servidor
@@ -307,6 +303,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
     def create_scrollbar_properties(self, groupbox: GroupboxDevices):
         groupbox.bool_scrollbar_created = True
         scrollbar = ScrollBar_Properties(groupbox)
+        scrollbar.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.dict_scrollbars_properties[groupbox.server.name] = scrollbar
         scrollbar.setLayout(scrollbar.layout)
         self.layout_properties.addWidget(scrollbar)
@@ -336,7 +333,7 @@ class MainWindow_logic(MainWindow, QMainWindow):
                         groupbox.dict_bool_created_device[device_name] = True
                     elif (not cb.isChecked()) and groupbox.dict_bool_created_device[device_name]:
                         groupbox.current_device = device_name
-                        time.sleep(0.5)
+                        #time.sleep(0.5)
                         self.del_device_scrollbar(self.dict_scrollbars_properties[groupbox.server.name])
                         groupbox.dict_bool_created_device[device_name] = False
             time.sleep(0.5)
@@ -347,6 +344,3 @@ class MainWindow_logic(MainWindow, QMainWindow):
             if cb.isChecked():
                 checked_count += 1
         return checked_count
-
-    def remove_widget(self, widget:QWidget):
-        widget.deleteLater()

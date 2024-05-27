@@ -1,15 +1,5 @@
-from PySide6.QtWidgets import (
-QMainWindow,
-QLabel,
-QWidget,
-QHBoxLayout,
-QVBoxLayout,
-QMenuBar,
-QMenu,
-QGroupBox,
-QPushButton,
-QStatusBar
-)
+from PySide6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
+    QVBoxLayout, QMenuBar, QMenu)
 from PySide6.QtGui import QAction
 
 class MainWindow(QMainWindow):
@@ -41,7 +31,7 @@ class MainWindow(QMainWindow):
         self.layout_total.addWidget(self.widget_properties)
 
         #Ajustamos el título de la ventana
-        self.setWindowTitle("INDIGO GUI (testing)")
+        self.setWindowTitle("INDIGO GUI")
 
         #Configuración de las acciones en el menú de acciones
         #La acción de desconectar del servidor se añadirá cuando
@@ -62,3 +52,6 @@ class MainWindow(QMainWindow):
         #del programa
         self.widget_total.setLayout(self.layout_total)
         self.setCentralWidget(self.widget_total)
+
+        self.resize(1000, 600)
+        self.move(650, 400)

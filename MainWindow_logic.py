@@ -114,7 +114,7 @@ class MainWindow_logic(MainWindow):
         layout_total.addWidget(dialog_button_box)
         self.dialog_total.setLayout(layout_total)
 
-        self.dialog_total.exec()
+        self.dialog_total.open()
 
     def server_info(self):
         selected_items = self.listwidget_servers.selectedItems()
